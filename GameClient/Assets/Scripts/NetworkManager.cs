@@ -55,7 +55,7 @@ public class NetworkManager : MonoBehaviour
 
     private IEnumerator ClientCoroutine() {
         byte[] bytes = new byte[1024];
-        IPAddress ipAddress = IPAddress.Parse("192.168.0.38");
+        IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
         IPEndPoint remoteEP = new IPEndPoint(ipAddress, 6969);
 
         sender = new Socket(ipAddress.AddressFamily,

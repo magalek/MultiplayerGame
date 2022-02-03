@@ -11,7 +11,7 @@ public class Server {
 
     public static Server Current;
 
-    private readonly string IPAddressString;
+    private readonly IPAddress IPAddress;
 
     public object clientsLocker = new object();
 
@@ -20,7 +20,13 @@ public class Server {
     private bool shouldRun;
 
     public Server(string ip) {
-        IPAddressString = ip;
+        IPAddress = IPAddress.Parse(ip);
+        shouldRun = true;
+        Current = this;
+    }
+
+    public Server() {
+        IPAddress = IPAddress.Parse("127.0.0.1");
         shouldRun = true;
         Current = this;
     }
@@ -72,7 +78,7 @@ public class Server {
     }
 
     public void Start()  {
-        IPAddress ipAddress = IPAddress.Parse(IPAddressString);
+        IPAddress ipAddress = IPAddress;
         IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 6969);    
 
         try {

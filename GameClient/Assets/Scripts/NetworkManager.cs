@@ -8,12 +8,16 @@ using System.Text;
 using System.Threading;
 using UnityEngine.Networking;
 using System.Threading.Tasks;
+using TMPro;
+using NetworkLibrary;
 
 public class NetworkManager : MonoBehaviour
 {
 
     [SerializeField] private Transform playerTransform;
     [SerializeField] private Player localPlayer;
+
+    [SerializeField] private TextMeshProUGUI pingLabel;
 
     private Dictionary<Guid, Player> playersDictionary = new Dictionary<Guid, Player>();
 
@@ -35,13 +39,13 @@ public class NetworkManager : MonoBehaviour
 
     private IEnumerator DataCoroutine() {
         while (serverRunning) {
-            var lastPos = playerTransform.position;
-            yield return null;
+            //var lastPos = playerTransform.position;
+            //yield return null;
             var pos = playerTransform.position;
 
-            if (lastPos == pos) {
-                continue;
-            }
+            //if (lastPos == pos) {
+            //    continue;
+            //}
 
             byte[] packet = new byte[sizeof(float) * 3];
             Buffer.BlockCopy(BitConverter.GetBytes(pos.x), 0, packet, 0, 4);
@@ -76,6 +80,8 @@ public class NetworkManager : MonoBehaviour
 
                 currentPacket = new PositionPacket(bytes, bytesRec);
 
+                pingLabel.text = (DateTime.Now.TimeOfDay.TotalMilliseconds - currentPacket.miliseconds).ToString("000");
+
                 foreach (var packetPlayer in currentPacket.positions) {
                     if (!playersDictionary.ContainsKey(packetPlayer.Key) && localPlayer.ID != packetPlayer.Key) {
                         var otherPlayer = Instantiate(localPlayer);
@@ -101,12 +107,17 @@ public class PositionPacket {
 
     public readonly int PlayerCount;
 
+    public double miliseconds;
     public Dictionary<Guid, Vector3> positions;
 
     public PositionPacket(byte[] bytes, int bytesRec) {
         int bufferHead = 0;
         PlayerCount = bytes[bufferHead];
         bufferHead++;
+
+        miliseconds = BitConverter.ToDouble(bytes, bufferHead);
+
+        bufferHead += sizeof(double);
 
         positions = new Dictionary<Guid, Vector3>(PlayerCount);
 

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 
@@ -66,13 +68,13 @@ public class Server {
 
                 byte[] msg = Encoding.ASCII.GetBytes($"<connected=true>");
                 newClient.Send(msg);
+                Console.WriteLine($"{unityClient?.Name} -- {newClient.RemoteEndPoint} connected.");
             }
         }
         
-        if (UnityClient.AllClients.Count == 1) {
-            Task.Run(() => ListenToUnityClientsAll());
-        }
-        Console.WriteLine($"{unityClient?.Name} -- {newClient.RemoteEndPoint} connected.");
+        //if (UnityClient.AllClients.Count == 1) {
+        //    Task.Run(() => ListenToUnityClientsAll());
+        //}
         listener.BeginAccept(OnClientAccept, listener);
         
     }
@@ -90,13 +92,18 @@ public class Server {
 
             listener.BeginAccept(OnClientAccept, listener);
 
+            Stopwatch stopwatch = new Stopwatch();
             while (shouldRun)  
             {
                 if (UnityClient.AllClients.Count == 0 || UnityClient.AllClients.Any(c => c.Disconnecting)) continue;
-                lock (clientsLocker) {
-                    SendPackets();
+
+                for (int i = 0; i < UnityClient.AllClients.Count; i++) {
+                    if (UnityClient.AllClients[i].Socket.Poll(100, SelectMode.SelectRead)) {
+                        UnityClient.AllClients[i].UpdatePosition();
+                    }
                 }
 
+                SendPackets();
             }
             listener.Shutdown(SocketShutdown.Both);
             listener.Close();  
@@ -114,7 +121,12 @@ public class Server {
         byte[] message = new byte[256];
         int bufferHead = 0;
         message[0] = (byte)UnityClient.AllClients.Count;
+        double time = DateTime.Now.TimeOfDay.TotalMilliseconds;
+
         bufferHead++;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(time), 0, message, bufferHead, sizeof(double));
+        bufferHead += sizeof(double);
 
         for (int i = 0; i < UnityClient.AllClients.Count; i++) {
             var client = UnityClient.AllClients[i];
